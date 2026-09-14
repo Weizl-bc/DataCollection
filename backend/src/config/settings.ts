@@ -39,7 +39,6 @@ export const settings = {
     codeTemplate: readText("TASK_CODE_TEMPLATE", "{prefix}{type}({year}){number}"),
     valueField: readText("TASK_VALUE_FIELD", "value"),
     itemField: readText("TASK_ITEM_FIELD", "itemCode"),
-    proxyUrl: readText("TASK_PROXY_URL"),
     endpoint: readText("TASK_API_URL"),
     referer: readText("TASK_REFERER"),
     environment: readText("TASK_ENV", "prod"),

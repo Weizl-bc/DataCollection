@@ -44,7 +44,6 @@ export function resolveTaskConfig(input: unknown): TaskConfig {
     codeTemplate: readText(source.codeTemplate, settings.task.codeTemplate),
     valueField: readText(source.valueField, settings.task.valueField),
     itemField: readText(source.itemField, settings.task.itemField),
-    proxyUrl: readText(source.proxyUrl, settings.task.proxyUrl),
     endpoint: readText(source.endpoint, settings.task.endpoint),
     referer: readText(source.referer, settings.task.referer),
     environment: readText(source.environment, settings.task.environment),

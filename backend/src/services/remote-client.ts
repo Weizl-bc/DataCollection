@@ -7,7 +7,7 @@ import {
   randomBytes,
   randomUUID,
 } from "node:crypto";
-import { fetch as request, ProxyAgent } from "undici";
+import { fetch as request } from "undici";
 import type { CallResult, TaskConfig, WorkItem } from "../types/task";
 
 type ResponseData = {
@@ -98,15 +98,7 @@ function getErrorMessage(error: unknown) {
 }
 
 export class RemoteClient {
-  private readonly dispatcher: ProxyAgent | undefined;
-
-  constructor(private readonly config: TaskConfig) {
-    this.dispatcher = config.proxyUrl ? new ProxyAgent(config.proxyUrl) : undefined;
-  }
-
-  async close() {
-    await this.dispatcher?.close();
-  }
+  constructor(private readonly config: TaskConfig) {}
 
   async execute(item: WorkItem): Promise<CallResult> {
     const startedAt = Date.now();
@@ -146,7 +138,6 @@ export class RemoteClient {
         `${this.config.endpoint}${separator}strData=${encodeURIComponent(body)}`,
         {
           method: "GET",
-          dispatcher: this.dispatcher,
           headers: {
             accept: "application/json, text/plain, */*",
             authorization: this.config.accessToken,

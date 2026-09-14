@@ -230,11 +230,6 @@ export class TaskManager {
       lastError = getErrorMessage(error);
     } finally {
       try {
-        await client?.close();
-      } catch (error) {
-        console.error(error);
-      }
-      try {
         await this.taskRepository.finish(running.id, status, lastError);
         const snapshot = await this.taskRepository.getById(running.id);
         if (snapshot) {

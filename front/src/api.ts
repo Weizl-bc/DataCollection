@@ -12,7 +12,6 @@ export type TaskConfigInput = {
   codeTemplate?: string;
   valueField?: string;
   itemField?: string;
-  proxyUrl?: string;
   endpoint?: string;
   referer?: string;
   environment?: string;
@@ -74,7 +73,7 @@ export type RecordPage = {
   pageSize: number;
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 async function requestJson<T>(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);

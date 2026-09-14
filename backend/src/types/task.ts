@@ -21,7 +21,6 @@ export type TaskConfig = {
   codeTemplate: string;
   valueField: string;
   itemField: string;
-  proxyUrl: string;
   endpoint: string;
   referer: string;
   environment: string;
@@ -47,7 +46,6 @@ export type TaskConfigInput = Partial<
     | "codeTemplate"
     | "valueField"
     | "itemField"
-    | "proxyUrl"
     | "endpoint"
     | "referer"
     | "environment"

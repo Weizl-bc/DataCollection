@@ -577,11 +577,6 @@ function App() {
                         </Form.Item>
                         <Row gutter={16}>
                           <Col xs={24} sm={12}>
-                            <Form.Item label="代理地址" name="proxyUrl">
-                              <Input />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} sm={12}>
                             <Form.Item label="来源地址" name="referer">
                               <Input />
                             </Form.Item>
