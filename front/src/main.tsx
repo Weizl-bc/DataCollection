@@ -38,6 +38,7 @@ export function Root() {
         token: {
           colorPrimary: darkMode ? '#8bc9ff' : '#1677ff',
           colorInfo: darkMode ? '#8bc9ff' : '#1677ff',
+          colorTextSecondary: darkMode ? '#b9c5d9' : '#475569',
           borderRadius: 16,
           fontFamily:
             'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',

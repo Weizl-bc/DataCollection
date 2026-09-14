@@ -945,7 +945,7 @@ function App({ darkMode, onToggleDarkMode }: AppProps) {
                       allowClear
                       className="filter-input business-exact-input"
                     />
-                    <Typography.Text type="secondary">或按编号范围：</Typography.Text>
+                    <Typography.Text className="business-range-label">或按编号范围：</Typography.Text>
                     <Select
                       value={selectedBusinessType || undefined}
                       onChange={(value) =>
@@ -995,7 +995,7 @@ function App({ darkMode, onToggleDarkMode }: AppProps) {
                       placeholder="起始编号"
                       className="business-range-input"
                     />
-                    <Typography.Text type="secondary">至</Typography.Text>
+                    <Typography.Text className="business-range-separator">至</Typography.Text>
                     <InputNumber
                       min={0}
                       precision={0}
