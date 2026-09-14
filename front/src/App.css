@@ -1,0 +1,117 @@
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(137, 205, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 88% 86%, rgba(189, 145, 255, 0.16), transparent 34%),
+    #0e1421;
+}
+
+.hero-card {
+  width: min(100%, 720px);
+  padding: clamp(2rem, 6vw, 5rem);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  background: rgba(22, 31, 48, 0.82);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.eyebrow {
+  margin: 0 0 1.25rem;
+  color: #8bc9ff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 620px;
+  margin: 0;
+  color: #f7f9ff;
+  font-size: clamp(2.3rem, 6vw, 4.8rem);
+  letter-spacing: -0.06em;
+  line-height: 1.02;
+}
+
+.hero-description {
+  max-width: 560px;
+  margin: 1.5rem 0 0;
+  color: #b9c5d9;
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 2.5rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba(139, 201, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(11, 18, 31, 0.54);
+}
+
+.status-indicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #f7b955;
+  box-shadow: 0 0 0 5px rgba(247, 185, 85, 0.12);
+}
+
+.status-indicator[data-online="true"] {
+  background: #5fe0a0;
+  box-shadow: 0 0 0 5px rgba(95, 224, 160, 0.12);
+}
+
+.status-label,
+.status-value {
+  margin: 0;
+}
+
+.status-label {
+  color: #8797b1;
+  font-size: 0.76rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.status-value {
+  margin-top: 0.2rem;
+  color: #e7edf8;
+}
+
+.status-error {
+  color: #ffadad;
+}
+
+.stack-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 2rem;
+}
+
+.stack-list span {
+  padding: 0.48rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: #c8d3e5;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 600px) {
+  .app-shell {
+    padding: 1rem;
+  }
+
+  .hero-card {
+    border-radius: 22px;
+  }
+}

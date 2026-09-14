@@ -1,0 +1,15 @@
+{
+  "name": "ag-data-collection",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Full-stack React and Express TypeScript starter project",
+  "scripts": {
+    "dev": "concurrently -k -n backend,front -c blue,green \"npm --prefix backend run dev\" \"npm --prefix front run dev\"",
+    "start": "npm run dev",
+    "build": "npm run build --prefix backend && npm run build --prefix front",
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix front"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
