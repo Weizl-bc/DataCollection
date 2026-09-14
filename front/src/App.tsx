@@ -6,7 +6,6 @@ import {
   Card,
   Col,
   Descriptions,
-  Divider,
   Empty,
   Flex,
   Form,
@@ -593,24 +592,6 @@ function App() {
                           <Input.Password placeholder="留空使用服务端配置" />
                         </Form.Item>
 
-                        <Divider>执行配置</Divider>
-                        <Row gutter={16}>
-                          <Col xs={24} sm={8}>
-                            <Form.Item label="超时时间（毫秒）" name="timeoutMs">
-                              <InputNumber min={100} precision={0} className="full-width" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} sm={8}>
-                            <Form.Item label="最小间隔（毫秒）" name="minDelayMs">
-                              <InputNumber min={0} precision={0} className="full-width" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} sm={8}>
-                            <Form.Item label="最大间隔（毫秒）" name="maxDelayMs">
-                              <InputNumber min={0} precision={0} className="full-width" />
-                            </Form.Item>
-                          </Col>
-                        </Row>
                         <Form.Item name="valueField" hidden>
                           <Input />
                         </Form.Item>
