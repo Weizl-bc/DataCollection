@@ -62,6 +62,8 @@ npm run build
 
 `backend/.env` 用于保存数据库、接口凭据和任务参数，已被 `.gitignore` 忽略。首次使用时复制 `backend/.env.example` 并填写本地配置。
 
+远端接口的加密协议参数也只配置在 `backend/.env` 的 `TASK_CRYPTO_*` 变量中，示例文件不包含具体协议值。部署前请按照远端接口协议补齐这些变量；其中 `TASK_CRYPTO_PAYLOAD_IV` 为空或填写 `none` 表示不使用 IV，非空时还需要填写对应的 `TASK_CRYPTO_PAYLOAD_IV_ENCODING`。不要把真实的 `.env` 文件提交到 GitHub。
+
 后端启动时会自动创建 `task_run`，并为已有的 `api_call_record` 增加任务编号和序号字段。服务重启时，未结束的任务会标记为失败。
 
 任务页面支持参数提交、执行进度、成功失败统计、停止任务和历史查看。执行状态通过实时连接更新，记录页面支持按任务编号、请求编号和调用状态筛选。

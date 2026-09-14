@@ -1,7 +1,14 @@
-import "dotenv/config";
+import path from "node:path";
+import { config as loadEnv } from "dotenv";
+
+loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
 function readText(name: string, fallback = "") {
   return process.env[name] ?? fallback;
+}
+
+function readEnv(name: string) {
+  return process.env[name];
 }
 
 function readNumber(name: string, fallback: number) {
@@ -32,6 +39,19 @@ export const settings = {
     publicKey: readText("TASK_PUBLIC_KEY"),
     privateKey: readText("TASK_PRIVATE_KEY"),
     accessToken: readText("TASK_ACCESS_TOKEN"),
+    crypto: {
+      sessionKeyLength: readEnv("TASK_CRYPTO_SESSION_KEY_LENGTH"),
+      sessionKeyAlphabet: readEnv("TASK_CRYPTO_SESSION_KEY_ALPHABET"),
+      sessionKeyTextEncoding: readEnv("TASK_CRYPTO_SESSION_KEY_TEXT_ENCODING"),
+      sessionKeyEncoding: readEnv("TASK_CRYPTO_SESSION_KEY_ENCODING"),
+      encryptedKeyEncoding: readEnv("TASK_CRYPTO_ENCRYPTED_KEY_ENCODING"),
+      rsaPadding: readEnv("TASK_CRYPTO_RSA_PADDING"),
+      payloadAlgorithm: readEnv("TASK_CRYPTO_PAYLOAD_ALGORITHM"),
+      payloadIv: readEnv("TASK_CRYPTO_PAYLOAD_IV"),
+      payloadIvEncoding: readEnv("TASK_CRYPTO_PAYLOAD_IV_ENCODING"),
+      payloadEncoding: readEnv("TASK_CRYPTO_PAYLOAD_ENCODING"),
+      payloadTextEncoding: readEnv("TASK_CRYPTO_PAYLOAD_TEXT_ENCODING"),
+    },
     itemCode: readText("TASK_ITEM_CODE"),
     typeCode: readText("TASK_TYPE_CODE"),
     stopHour: readNumber("TASK_STOP_HOUR", 8),
