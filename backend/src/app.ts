@@ -1,25 +1,32 @@
 import cors from "cors";
-import "dotenv/config";
 import express, { type ErrorRequestHandler } from "express";
+import { settings } from "./config/settings";
+import { HttpError } from "./errors";
+import { createRecordRouter } from "./routes/record-routes";
+import { createTaskRouter } from "./routes/task-routes";
+import { RecordRepository } from "./repositories/record-repository";
+import { TaskRepository } from "./repositories/task-repository";
+import { NoticeService } from "./services/notice-service";
+import { TaskManager } from "./services/task-manager";
 
 const app = express();
-const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const taskRepository = new TaskRepository();
+const recordRepository = new RecordRepository();
+const taskManager = new TaskManager(
+  taskRepository,
+  recordRepository,
+  new NoticeService(),
+);
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: settings.server.origins,
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 app.get("/api", (_request, response) => {
-  response.json({
-    name: "agDataCollection API",
-    message: "API is running",
-  });
+  response.json({ status: "ok" });
 });
 
 app.get("/api/health", (_request, response) => {
@@ -30,19 +37,21 @@ app.get("/api/health", (_request, response) => {
   });
 });
 
+app.use("/api/tasks", createTaskRouter(taskManager));
+app.use("/api/api_call_record", createRecordRouter(recordRepository));
+
 app.use((_request, response) => {
-  response.status(404).json({
-    message: "Resource not found",
-  });
+  response.status(404).json({ message: "资源不存在" });
 });
 
 const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   console.error(error);
-  response.status(500).json({
-    message: "Internal server error",
-  });
+  const statusCode = error instanceof HttpError ? error.statusCode : 500;
+  const message = error instanceof HttpError ? error.message : "服务暂不可用";
+  response.status(statusCode).json({ message });
 };
 
 app.use(errorHandler);
 
+export { taskManager };
 export default app;

@@ -1,12 +1,12 @@
 # agDataCollection
 
-一个 React + TypeScript + Vite 前端和 Node.js + TypeScript + Express 后端组成的全栈项目起始模板。
+一个 React + TypeScript + Vite + Ant Design 前端和 Node.js + TypeScript + Express 后端组成的任务管理项目。
 
 ## 目录结构
 
 ```text
 agDataCollection/
-├─ front/       # React + TypeScript + Vite
+├─ front/       # React + TypeScript + Vite + Ant Design
 ├─ backend/     # Node.js + TypeScript + Express
 ├─ start.cmd    # Windows 启动脚本
 ├─ start.sh     # macOS / Linux 启动脚本
@@ -47,6 +47,8 @@ macOS / Linux：
 
 - 前端：http://localhost:5173
 - 后端健康检查：http://localhost:3001/api/health
+- 任务接口：http://localhost:3001/api/tasks
+- 记录接口：http://localhost:3001/api/api_call_record
 
 `concurrently` 会在同一个控制台中并行显示前端和后端日志。Windows 脚本不会使用 `start` 命令，因此不会额外打开窗口。
 
@@ -57,6 +59,14 @@ npm run build
 ```
 
 后端默认监听 `3001` 端口，可通过 `backend/.env` 覆盖，配置示例见 `backend/.env.example`。
+
+`backend/.env` 用于保存数据库、接口凭据和任务参数，已被 `.gitignore` 忽略。首次使用时复制 `backend/.env.example` 并填写本地配置。
+
+后端启动时会自动创建 `task_run`，并为已有的 `api_call_record` 增加任务编号和序号字段。服务重启时，未结束的任务会标记为失败。
+
+任务页面支持参数提交、执行进度、成功失败统计、停止任务和历史查看。执行状态通过实时连接更新，记录页面支持按任务编号、请求编号和调用状态筛选。
+
+前端统一使用 Ant Design 组件库，后续新增的表单、按钮、表格、弹窗、提示、布局等 UI 组件应优先使用 Ant Design，统一通过 `ConfigProvider` 管理主题。
 
 ## GitHub Pages
 
