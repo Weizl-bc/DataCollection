@@ -49,6 +49,20 @@ async function createTaskTable() {
   `);
 }
 
+async function createTaskExecutionLockTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_execution_lock (
+      id TINYINT UNSIGNED NOT NULL,
+      task_id CHAR(36) NULL,
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+  await pool.query(
+    "INSERT IGNORE INTO task_execution_lock (id) VALUES (1)",
+  );
+}
+
 async function createRecordTable() {
   if (await hasTable("api_call_record")) {
     return;
@@ -110,6 +124,7 @@ async function extendRecordTable() {
 export async function initializeDatabase() {
   await pool.query("SELECT 1");
   await createTaskTable();
+  await createTaskExecutionLockTable();
   await createRecordTable();
   await extendRecordTable();
 }

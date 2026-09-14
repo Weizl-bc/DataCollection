@@ -24,3 +24,16 @@ export type RecordPage = {
   page: number;
   pageSize: number;
 };
+
+export type RecordQuery = {
+  page: number;
+  pageSize: number;
+  status?: string;
+  taskRunId?: string;
+  requestId?: string;
+  businessFieldValue?: string;
+  businessType?: string;
+  businessYear?: number;
+  businessNumberStart?: number;
+  businessNumberEnd?: number;
+};

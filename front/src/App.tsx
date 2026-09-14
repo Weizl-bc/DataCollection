@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Badge,
@@ -30,6 +30,7 @@ import type { TableColumnsType } from "antd";
 import {
   getActiveTask,
   getRecords,
+  getRecordSearchOptions,
   getTaskConfig,
   getTasks,
   startTask,
@@ -37,13 +38,21 @@ import {
   subscribeTask,
   type ApiRecord,
   type RecordPage,
+  type RecordQuery,
+  type RecordSearchOptions,
   type TaskConfigInput,
   type TaskConfigView,
   type TaskSnapshot,
 } from "./api";
+import { frontendConfig } from "./config";
 import "./App.css";
 
 type ViewKey = "tasks" | "records";
+
+type AppProps = {
+  darkMode: boolean;
+  onToggleDarkMode: () => void;
+};
 
 const statusText: Record<string, string> = {
   RUNNING: "执行中",
@@ -87,6 +96,24 @@ const initialRecordQuery = {
   status: "",
   taskRunId: "",
   requestId: "",
+  businessFieldValue: "",
+  businessType: "",
+  businessYear: undefined,
+  businessNumberStart: undefined,
+  businessNumberEnd: undefined,
+} satisfies RecordQuery;
+
+type RecordFilters = Omit<RecordQuery, "page" | "pageSize">;
+
+const initialRecordFilters: RecordFilters = {
+  status: "",
+  taskRunId: "",
+  requestId: "",
+  businessFieldValue: "",
+  businessType: "",
+  businessYear: undefined,
+  businessNumberStart: undefined,
+  businessNumberEnd: undefined,
 };
 
 function getErrorMessage(error: unknown) {
@@ -103,14 +130,20 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatJson(value: unknown) {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-  if (typeof value === "string") {
+function parseJsonText(value: unknown) {
+  if (typeof value !== "string") {
     return value;
   }
-  return JSON.stringify(value, null, 2) ?? "—";
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function formatJson(value: unknown) {
+  return JSON.stringify(parseJsonText(value), null, 2) ?? "—";
 }
 
 function getStatusText(value: string | null | undefined) {
@@ -142,7 +175,23 @@ function formatCode(
     .replaceAll("{number}", String(value));
 }
 
-function App() {
+function formatCodePrefix(
+  config: TaskConfigView | null,
+  typeCode: string | undefined,
+  year: number | undefined,
+) {
+  if (!config || !typeCode || year === undefined) {
+    return "—";
+  }
+
+  return config.codeTemplate
+    .replaceAll("{prefix}", config.codePrefix)
+    .replaceAll("{type}", typeCode)
+    .replaceAll("{year}", String(year))
+    .replaceAll("{number}", "");
+}
+
+function App({ darkMode, onToggleDarkMode }: AppProps) {
   const [form] = Form.useForm<TaskConfigInput>();
   const [view, setView] = useState<ViewKey>("tasks");
   const [config, setConfig] = useState<TaskConfigView | null>(null);
@@ -150,15 +199,17 @@ function App() {
   const [activeTask, setActiveTask] = useState<TaskSnapshot | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const startRequestRef = useRef(false);
   const [stopping, setStopping] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [realtimeError, setRealtimeError] = useState<string | null>(null);
-  const [recordFilters, setRecordFilters] = useState({
-    status: "",
-    taskRunId: "",
-    requestId: "",
+  const [backendApiUrl, setBackendApiUrl] = useState(frontendConfig.apiBaseUrl);
+  const [recordSearchOptions, setRecordSearchOptions] = useState<RecordSearchOptions>({
+    types: [],
+    years: [],
   });
-  const [recordQuery, setRecordQuery] = useState(initialRecordQuery);
+  const [recordFilters, setRecordFilters] = useState<RecordFilters>(initialRecordFilters);
+  const [recordQuery, setRecordQuery] = useState<RecordQuery>(initialRecordQuery);
   const [recordPage, setRecordPage] = useState<RecordPage>({
     items: [],
     total: 0,
@@ -184,6 +235,21 @@ function App() {
     return first === "—" || last === "—" ? "—" : `${first} ~ ${last}`;
   }, [config, watchedEndNo, watchedStartNo, watchedTypeCode, watchedYear]);
 
+  const selectedBusinessType =
+    recordFilters.businessType ||
+    (config && recordSearchOptions.types.includes(config.typeCode)
+      ? config.typeCode
+      : recordSearchOptions.types[0]);
+  const selectedBusinessYear =
+    recordFilters.businessYear ??
+    (config && recordSearchOptions.years.includes(config.year)
+      ? config.year
+      : recordSearchOptions.years[0]);
+  const businessCodePrefix = useMemo(
+    () => formatCodePrefix(config, selectedBusinessType, selectedBusinessYear),
+    [config, selectedBusinessType, selectedBusinessYear],
+  );
+
   const refreshHistory = useCallback(async () => {
     const items = await getTasks();
     setTasks(items);
@@ -193,12 +259,27 @@ function App() {
     setPageLoading(true);
     setLoadError(null);
     try {
-      const [nextConfig, nextTasks, nextActive] = await Promise.all([
+      const [nextConfig, nextTasks, nextActive, nextRecordSearchOptions] = await Promise.all([
         getTaskConfig(),
         getTasks(),
         getActiveTask(),
+        getRecordSearchOptions(),
       ]);
       setConfig(nextConfig);
+      setRecordSearchOptions(nextRecordSearchOptions);
+      setRecordFilters((current) => ({
+        ...current,
+        businessType:
+          current.businessType ||
+          (nextRecordSearchOptions.types.includes(nextConfig.typeCode)
+            ? nextConfig.typeCode
+            : nextRecordSearchOptions.types[0] ?? ""),
+        businessYear:
+          current.businessYear ??
+          (nextRecordSearchOptions.years.includes(nextConfig.year)
+            ? nextConfig.year
+            : nextRecordSearchOptions.years[0]),
+      }));
       form.setFieldsValue(nextConfig);
       setTasks(nextTasks);
       setActiveTask(nextActive);
@@ -242,6 +323,41 @@ function App() {
   }, [activeTaskId, activeTaskStatus, refreshHistory]);
 
   useEffect(() => {
+    if (view !== "tasks") {
+      return;
+    }
+
+    let cancelled = false;
+    const syncActiveTask = async () => {
+      try {
+        const nextActive = await getActiveTask();
+        if (cancelled) {
+          return;
+        }
+
+        setActiveTask(nextActive);
+        if (nextActive) {
+          setTasks((current) => {
+            const exists = current.some((item) => item.id === nextActive.id);
+            return exists
+              ? current.map((item) => (item.id === nextActive.id ? nextActive : item))
+              : [nextActive, ...current];
+          });
+        }
+      } catch {
+        // 实时连接和页面初始加载会负责展示错误，轮询只用于同步全局任务状态。
+      }
+    };
+
+    void syncActiveTask();
+    const timer = window.setInterval(() => void syncActiveTask(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [view]);
+
+  useEffect(() => {
     if (view !== "records") {
       return;
     }
@@ -275,17 +391,42 @@ function App() {
   }, [recordQuery, view]);
 
   const handleStart = async (values: TaskConfigInput) => {
+    if (startRequestRef.current || starting) {
+      return;
+    }
+
+    startRequestRef.current = true;
     setStarting(true);
     setLoadError(null);
     setRealtimeError(null);
     try {
+      const existingTask = await getActiveTask();
+      if (existingTask) {
+        setActiveTask(existingTask);
+        setTasks((current) => [
+          existingTask,
+          ...current.filter((item) => item.id !== existingTask.id),
+        ]);
+        messageApi.warning("已有任务正在执行，请等待当前任务完成");
+        return;
+      }
+
       const task = await startTask(values);
       setActiveTask(task);
       setTasks((current) => [task, ...current.filter((item) => item.id !== task.id)]);
       messageApi.success("任务已启动");
     } catch (error) {
+      const existingTask = await getActiveTask().catch(() => null);
+      if (existingTask) {
+        setActiveTask(existingTask);
+        setTasks((current) => [
+          existingTask,
+          ...current.filter((item) => item.id !== existingTask.id),
+        ]);
+      }
       messageApi.error(getErrorMessage(error));
     } finally {
+      startRequestRef.current = false;
       setStarting(false);
     }
   };
@@ -309,8 +450,59 @@ function App() {
     }
   };
 
+  const handleBackendApiUrlApply = (value: string) => {
+    try {
+      const nextApiBaseUrl = frontendConfig.setApiBaseUrl(value);
+      setBackendApiUrl(nextApiBaseUrl);
+      setRecordQuery((current) => ({ ...current }));
+      void loadInitial();
+      messageApi.success("后端接口地址已应用");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
   const handleRecordSearch = () => {
-    setRecordQuery({ ...recordFilters, page: 1, pageSize: 20 });
+    const exactValue = recordFilters.businessFieldValue?.trim() ?? "";
+    const hasRangeStart = recordFilters.businessNumberStart !== undefined;
+    const hasRangeEnd = recordFilters.businessNumberEnd !== undefined;
+
+    if (hasRangeStart !== hasRangeEnd) {
+      messageApi.warning("请输入完整的业务编号范围");
+      return;
+    }
+
+    if (
+      hasRangeStart &&
+      hasRangeEnd &&
+      (recordFilters.businessNumberStart as number) > (recordFilters.businessNumberEnd as number)
+    ) {
+      messageApi.warning("业务编号起始值不能大于结束值");
+      return;
+    }
+
+    if (
+      hasRangeStart &&
+      hasRangeEnd &&
+      (!selectedBusinessType || selectedBusinessYear === undefined)
+    ) {
+      messageApi.warning("请选择业务类型和年份");
+      return;
+    }
+
+    if (exactValue && (hasRangeStart || hasRangeEnd)) {
+      messageApi.warning("精确搜索和范围搜索只能选择一种");
+      return;
+    }
+
+    setRecordQuery({
+      ...recordFilters,
+      businessFieldValue: exactValue,
+      businessType: selectedBusinessType,
+      businessYear: selectedBusinessYear,
+      page: 1,
+      pageSize: 20,
+    });
   };
 
   const handleRecordPageChange = (page: number, pageSize: number) => {
@@ -318,7 +510,7 @@ function App() {
   };
 
   const handleViewRecords = (taskRunId: string) => {
-    const nextFilters = { status: "", taskRunId, requestId: "" };
+    const nextFilters: RecordFilters = { ...initialRecordFilters, taskRunId };
     setRecordFilters(nextFilters);
     setRecordQuery({ ...nextFilters, page: 1, pageSize: 20 });
     setView("records");
@@ -464,7 +656,7 @@ function App() {
   const running = activeTask?.status === "RUNNING";
 
   return (
-    <Layout className="app-layout">
+    <Layout className={`app-layout ${darkMode ? "theme-dark" : "theme-light"}`}>
       {contextHolder}
       <Layout.Header className="app-header">
         <Flex align="center" className="header-inner" gap={24}>
@@ -483,6 +675,18 @@ function App() {
             className="connection-state"
             status={loadError ? "error" : "success"}
             text={loadError ? "连接异常" : "连接正常"}
+          />
+          <Button className="theme-toggle" onClick={onToggleDarkMode}>
+            {darkMode ? "☀ 白天模式" : "☾ 黑夜模式"}
+          </Button>
+          <Input.Search
+            value={backendApiUrl}
+            onChange={(event) => setBackendApiUrl(event.target.value)}
+            onSearch={handleBackendApiUrlApply}
+            enterButton="应用"
+            addonBefore="后端接口"
+            className="backend-url-search"
+            aria-label="后端接口地址"
           />
         </Flex>
       </Layout.Header>
@@ -513,7 +717,7 @@ function App() {
                     type="primary"
                     onClick={() => void form.submit()}
                     loading={starting}
-                    disabled={running || pageLoading}
+                    disabled={running || starting || pageLoading}
                   >
                     启动任务
                   </Button>
@@ -698,34 +902,118 @@ function App() {
               </Flex>
 
               <Card className="panel-card record-filter-card">
-                <Flex wrap gap={12}>
-                  <Input
-                    value={recordFilters.taskRunId}
-                    onChange={(event) => setRecordFilters((current) => ({ ...current, taskRunId: event.target.value }))}
-                    onPressEnter={handleRecordSearch}
-                    placeholder="任务编号"
-                    allowClear
-                    className="filter-input filter-id"
-                  />
-                  <Input
-                    value={recordFilters.requestId}
-                    onChange={(event) => setRecordFilters((current) => ({ ...current, requestId: event.target.value }))}
-                    onPressEnter={handleRecordSearch}
-                    placeholder="请求编号"
-                    allowClear
-                    className="filter-input filter-id"
-                  />
-                  <Select
-                    value={recordFilters.status || undefined}
-                    onChange={(value) => setRecordFilters((current) => ({ ...current, status: value ?? "" }))}
-                    options={recordStatusOptions}
-                    placeholder="调用状态"
-                    allowClear
-                    className="filter-select"
-                  />
-                  <Button type="primary" onClick={handleRecordSearch}>
-                    查询
-                  </Button>
+                <Flex vertical gap={12}>
+                  <Flex wrap gap={12}>
+                    <Input
+                      value={recordFilters.taskRunId}
+                      onChange={(event) => setRecordFilters((current) => ({ ...current, taskRunId: event.target.value }))}
+                      onPressEnter={handleRecordSearch}
+                      placeholder="任务编号"
+                      allowClear
+                      className="filter-input filter-id"
+                    />
+                    <Input
+                      value={recordFilters.requestId}
+                      onChange={(event) => setRecordFilters((current) => ({ ...current, requestId: event.target.value }))}
+                      onPressEnter={handleRecordSearch}
+                      placeholder="请求编号"
+                      allowClear
+                      className="filter-input filter-id"
+                    />
+                    <Select
+                      value={recordFilters.status || undefined}
+                      onChange={(value) => setRecordFilters((current) => ({ ...current, status: value ?? "" }))}
+                      options={recordStatusOptions}
+                      placeholder="调用状态"
+                      allowClear
+                      className="filter-select"
+                    />
+                  </Flex>
+                  <Flex align="center" wrap gap={12} className="business-filter-row">
+                    <Input
+                      value={recordFilters.businessFieldValue}
+                      onChange={(event) =>
+                        setRecordFilters((current) => ({
+                          ...current,
+                          businessFieldValue: event.target.value,
+                          businessNumberStart: undefined,
+                          businessNumberEnd: undefined,
+                        }))
+                      }
+                      onPressEnter={handleRecordSearch}
+                      placeholder="业务字段精确搜索"
+                      allowClear
+                      className="filter-input business-exact-input"
+                    />
+                    <Typography.Text type="secondary">或按编号范围：</Typography.Text>
+                    <Select
+                      value={selectedBusinessType || undefined}
+                      onChange={(value) =>
+                        setRecordFilters((current) => ({
+                          ...current,
+                          businessType: value ?? "",
+                        }))
+                      }
+                      options={recordSearchOptions.types.map((value) => ({
+                        label: value,
+                        value,
+                      }))}
+                      placeholder="类型"
+                      disabled={recordSearchOptions.types.length === 0}
+                      className="business-select"
+                    />
+                    <Select
+                      value={selectedBusinessYear}
+                      onChange={(value) =>
+                        setRecordFilters((current) => ({
+                          ...current,
+                          businessYear: value,
+                        }))
+                      }
+                      options={recordSearchOptions.years.map((value) => ({
+                        label: String(value),
+                        value,
+                      }))}
+                      placeholder="年份"
+                      disabled={recordSearchOptions.years.length === 0}
+                      className="business-select"
+                    />
+                    <Typography.Text className="business-search-prefix">
+                      {businessCodePrefix}
+                    </Typography.Text>
+                    <InputNumber
+                      min={0}
+                      precision={0}
+                      value={recordFilters.businessNumberStart}
+                      onChange={(value) =>
+                        setRecordFilters((current) => ({
+                          ...current,
+                          businessFieldValue: "",
+                          businessNumberStart: value ?? undefined,
+                        }))
+                      }
+                      placeholder="起始编号"
+                      className="business-range-input"
+                    />
+                    <Typography.Text type="secondary">至</Typography.Text>
+                    <InputNumber
+                      min={0}
+                      precision={0}
+                      value={recordFilters.businessNumberEnd}
+                      onChange={(value) =>
+                        setRecordFilters((current) => ({
+                          ...current,
+                          businessFieldValue: "",
+                          businessNumberEnd: value ?? undefined,
+                        }))
+                      }
+                      placeholder="结束编号"
+                      className="business-range-input"
+                    />
+                    <Button type="primary" onClick={handleRecordSearch}>
+                      查询
+                    </Button>
+                  </Flex>
                 </Flex>
               </Card>
 

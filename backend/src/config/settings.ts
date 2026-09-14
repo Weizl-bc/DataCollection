@@ -16,6 +16,39 @@ function readNumber(name: string, fallback: number) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function readList(name: string) {
+  return readText(name)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function readNumberList(name: string) {
+  return readList(name)
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item));
+}
+
+function readJsonObject(name: string): Record<string, string> {
+  const rawValue = readText(name).trim();
+  if (!rawValue) {
+    return {};
+  }
+
+  try {
+    const value = JSON.parse(rawValue) as unknown;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).filter(([, label]) => typeof label === "string"),
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
 export const settings = {
   server: {
     port: readNumber("PORT", 3001),
@@ -31,6 +64,13 @@ export const settings = {
     password: readText("DB_PASSWORD"),
     database: readText("DB_NAME"),
     charset: readText("DB_CHARSET", "utf8mb4"),
+  },
+  record: {
+    jsonFieldLabels: readJsonObject("RECORD_JSON_FIELD_LABELS"),
+    searchJsonPath: readText("RECORD_SEARCH_JSON_PATH"),
+    searchNumberWidth: readNumber("RECORD_SEARCH_NUMBER_WIDTH", 0),
+    searchTypeOptions: readList("RECORD_SEARCH_TYPE_OPTIONS"),
+    searchYearOptions: readNumberList("RECORD_SEARCH_YEAR_OPTIONS"),
   },
   task: {
     startNo: readNumber("TASK_START_NO", 1),

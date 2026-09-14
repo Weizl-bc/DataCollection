@@ -1,3 +1,5 @@
+import { frontendConfig } from "./config";
+
 export type TaskConfigInput = {
   startNo?: number;
   endNo?: number;
@@ -73,7 +75,23 @@ export type RecordPage = {
   pageSize: number;
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+export type RecordQuery = {
+  page: number;
+  pageSize: number;
+  status?: string;
+  taskRunId?: string;
+  requestId?: string;
+  businessFieldValue?: string;
+  businessType?: string;
+  businessYear?: number;
+  businessNumberStart?: number;
+  businessNumberEnd?: number;
+};
+
+export type RecordSearchOptions = {
+  types: string[];
+  years: number[];
+};
 
 async function requestJson<T>(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
@@ -81,7 +99,7 @@ async function requestJson<T>(path: string, init?: RequestInit) {
     headers.set("content-type", "application/json");
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${frontendConfig.apiBaseUrl}${path}`, {
     ...init,
     headers,
   });
@@ -136,13 +154,7 @@ export async function stopTask(id: string) {
   return result.task;
 }
 
-export async function getRecords(query: {
-  page: number;
-  pageSize: number;
-  status?: string;
-  taskRunId?: string;
-  requestId?: string;
-}) {
+export async function getRecords(query: RecordQuery) {
   const params = new URLSearchParams({
     page: String(query.page),
     pageSize: String(query.pageSize),
@@ -150,7 +162,20 @@ export async function getRecords(query: {
   if (query.status) params.set("status", query.status);
   if (query.taskRunId) params.set("taskRunId", query.taskRunId);
   if (query.requestId) params.set("requestId", query.requestId);
+  if (query.businessFieldValue) params.set("businessFieldValue", query.businessFieldValue);
+  if (query.businessType) params.set("businessType", query.businessType);
+  if (query.businessYear !== undefined) params.set("businessYear", String(query.businessYear));
+  if (query.businessNumberStart !== undefined) {
+    params.set("businessNumberStart", String(query.businessNumberStart));
+  }
+  if (query.businessNumberEnd !== undefined) {
+    params.set("businessNumberEnd", String(query.businessNumberEnd));
+  }
   return requestJson<RecordPage>(`/api/api_call_record?${params.toString()}`);
+}
+
+export async function getRecordSearchOptions() {
+  return requestJson<RecordSearchOptions>("/api/api_call_record/options");
 }
 
 export function subscribeTask(
@@ -159,7 +184,7 @@ export function subscribeTask(
   onError?: (error: Error) => void,
 ) {
   const source = new EventSource(
-    `${apiBaseUrl}/api/tasks/${encodeURIComponent(id)}/events`,
+    `${frontendConfig.apiBaseUrl}/api/tasks/${encodeURIComponent(id)}/events`,
   );
   const handleUpdate = (event: Event) => {
     try {
