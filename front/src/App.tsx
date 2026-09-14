@@ -126,6 +126,23 @@ function getErrorText(value: string | null) {
   return value ? errorText[value] ?? value : "—";
 }
 
+function formatCode(
+  config: TaskConfigView | null,
+  typeCode: string | undefined,
+  year: number | undefined,
+  value: number | undefined,
+) {
+  if (!config || !typeCode || !year || value === undefined) {
+    return "—";
+  }
+
+  return config.codeTemplate
+    .replaceAll("{prefix}", config.codePrefix)
+    .replaceAll("{type}", typeCode)
+    .replaceAll("{year}", String(year))
+    .replaceAll("{number}", String(value));
+}
+
 function App() {
   const [form] = Form.useForm<TaskConfigInput>();
   const [view, setView] = useState<ViewKey>("tasks");
@@ -153,6 +170,20 @@ function App() {
   const [recordError, setRecordError] = useState<string | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<ApiRecord | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const watchedStartNo = Form.useWatch("startNo", form);
+  const watchedEndNo = Form.useWatch("endNo", form);
+  const watchedYear = Form.useWatch("year", form);
+  const watchedTypeCode = Form.useWatch("typeCode", form);
+
+  const codeRange = useMemo(() => {
+    const start = watchedStartNo ?? config?.startNo;
+    const end = watchedEndNo ?? config?.endNo;
+    const year = watchedYear ?? config?.year;
+    const typeCode = watchedTypeCode ?? config?.typeCode;
+    const first = formatCode(config, typeCode, year, start);
+    const last = formatCode(config, typeCode, year, end);
+    return first === "—" || last === "—" ? "—" : `${first} ~ ${last}`;
+  }, [config, watchedEndNo, watchedStartNo, watchedTypeCode, watchedYear]);
 
   const refreshHistory = useCallback(async () => {
     const items = await getTasks();
@@ -512,7 +543,7 @@ function App() {
                           </Col>
                           <Col xs={24} sm={12}>
                             <Form.Item
-                              label="结束序号（不含）"
+                              label="结束序号"
                               name="endNo"
                               rules={[{ required: true, message: "请输入结束序号" }]}
                             >
@@ -530,20 +561,11 @@ function App() {
                           </Col>
                           <Col xs={24} sm={12}>
                             <Form.Item
-                              label="截止小时"
+                              label="截止时间"
                               name="stopHour"
-                              rules={[{ required: true, message: "请输入截止小时" }]}
+                              rules={[{ required: true, message: "请输入截止时间" }]}
                             >
                               <InputNumber min={0} max={23} precision={0} className="full-width" />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} sm={12}>
-                            <Form.Item
-                              label="项目编号"
-                              name="itemCode"
-                              rules={[{ required: true, message: "请输入项目编号" }]}
-                            >
-                              <Input />
                             </Form.Item>
                           </Col>
                           <Col xs={24} sm={12}>
@@ -555,49 +577,14 @@ function App() {
                               <Input />
                             </Form.Item>
                           </Col>
-                          <Col xs={24} sm={12}>
-                            <Form.Item label="编码前缀" name="codePrefix">
-                              <Input />
-                            </Form.Item>
-                          </Col>
-                          <Col xs={24} sm={12}>
-                            <Form.Item label="编码格式" name="codeTemplate">
-                              <Input />
-                            </Form.Item>
-                          </Col>
                         </Row>
 
-                        <Divider>连接配置</Divider>
-                        <Form.Item
-                          label="接口地址"
-                          name="endpoint"
-                          rules={[{ required: true, message: "请输入接口地址" }]}
-                        >
-                          <Input />
-                        </Form.Item>
-                        <Row gutter={16}>
-                          <Col xs={24} sm={12}>
-                            <Form.Item label="来源地址" name="referer">
-                              <Input />
-                            </Form.Item>
-                          </Col>
-                        </Row>
+                        <Card size="small" className="code-preview-card" title="编码范围">
+                          <Typography.Text className="code-preview-value">
+                            {codeRange}
+                          </Typography.Text>
+                        </Card>
 
-                        <Divider>凭据配置</Divider>
-                        <Form.Item
-                          label="公钥"
-                          name="publicKey"
-                          extra={config?.publicKeyConfigured ? "已配置" : "未配置"}
-                        >
-                          <Input.TextArea rows={3} placeholder="留空使用服务端配置" />
-                        </Form.Item>
-                        <Form.Item
-                          label="私钥"
-                          name="privateKey"
-                          extra={config?.privateKeyConfigured ? "已配置" : "未配置"}
-                        >
-                          <Input.TextArea rows={3} placeholder="留空使用服务端配置" />
-                        </Form.Item>
                         <Form.Item
                           label="访问凭据"
                           name="accessToken"
