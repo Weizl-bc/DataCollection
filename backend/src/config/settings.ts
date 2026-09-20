@@ -42,6 +42,24 @@ function readPositiveInteger(name: string, fallback: number) {
   return value;
 }
 
+function readTimeZoneOffset(name: string) {
+  const value = readRequiredText(name);
+  if (!/^(?:Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(value)) {
+    throw new Error(`${name} 必须是 Z 或 ±HH:MM 格式的时区偏移`);
+  }
+  return value;
+}
+
+function readIanaTimeZone(name: string) {
+  const value = readRequiredText(name);
+  try {
+    new Intl.DateTimeFormat("zh-CN", { timeZone: value }).format(0);
+  } catch {
+    throw new Error(`${name} 不是有效的 IANA 时区`);
+  }
+  return value;
+}
+
 function readList(name: string) {
   return readText(name)
     .split(",")
@@ -98,6 +116,7 @@ export const settings = {
     password: readText("DB_PASSWORD"),
     database: readText("DB_NAME"),
     charset: readText("DB_CHARSET", "utf8mb4"),
+    timeZone: readTimeZoneOffset("DB_TIME_ZONE"),
   },
   record: {
     jsonFieldLabels: readJsonObject("RECORD_JSON_FIELD_LABELS"),
@@ -195,6 +214,9 @@ export const settings = {
     },
     pagination: {
       recordDefaultPageSize: readPositiveInteger("FRONTEND_RECORD_DEFAULT_PAGE_SIZE", 20),
+    },
+    display: {
+      timeZone: readIanaTimeZone("FRONTEND_DISPLAY_TIME_ZONE"),
     },
   },
 } as const;

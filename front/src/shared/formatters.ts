@@ -1,3 +1,5 @@
+import { frontendConfig } from "../config";
+
 export function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "请求未完成";
 }
@@ -10,6 +12,7 @@ export function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "medium",
     timeStyle: "medium",
+    timeZone: frontendConfig.display.timeZone,
   }).format(new Date(value));
 }
 

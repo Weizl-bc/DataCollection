@@ -15,6 +15,7 @@ export type FrontendRuntimeConfig = {
   taskDetail: { fieldLabels: Record<string, string> };
   task: { activePollIntervalMs: number; historyLimit: number };
   pagination: { recordDefaultPageSize: number };
+  display: { timeZone: string };
 };
 
 function normalizeApiBaseUrl(value: string) {
@@ -65,6 +66,7 @@ export const frontendConfig: FrontendRuntimeConfig & {
   taskDetail: { fieldLabels: {} },
   task: { activePollIntervalMs: 1, historyLimit: 1 },
   pagination: { recordDefaultPageSize: 1 },
+  display: { timeZone: "" },
   get apiBaseUrl() {
     return currentApiBaseUrl;
   },
@@ -85,5 +87,6 @@ export async function loadFrontendConfig() {
   Object.assign(frontendConfig.taskDetail, config.taskDetail);
   Object.assign(frontendConfig.task, config.task);
   Object.assign(frontendConfig.pagination, config.pagination);
+  Object.assign(frontendConfig.display, config.display);
   return config;
 }
