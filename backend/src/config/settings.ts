@@ -3,8 +3,20 @@ import { config as loadEnv } from "dotenv";
 
 loadEnv({ path: path.resolve(__dirname, "../../.env") });
 
+function normalizeEnvValue(value: string | undefined) {
+  if (
+    value &&
+    value.length >= 2 &&
+    ((value.startsWith("'") && value.endsWith("'")) ||
+      (value.startsWith('"') && value.endsWith('"')))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
 function readText(name: string, fallback = "") {
-  return process.env[name] ?? fallback;
+  return normalizeEnvValue(process.env[name]) ?? fallback;
 }
 
 function readRequiredText(name: string) {
@@ -14,11 +26,11 @@ function readRequiredText(name: string) {
 }
 
 function readEnv(name: string) {
-  return process.env[name];
+  return normalizeEnvValue(process.env[name]);
 }
 
 function readNumber(name: string, fallback: number) {
-  const value = Number(process.env[name]);
+  const value = Number(readEnv(name));
   return Number.isFinite(value) ? value : fallback;
 }
 
