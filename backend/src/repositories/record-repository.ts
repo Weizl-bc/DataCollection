@@ -54,6 +54,22 @@ function localizeJson(value: unknown): unknown {
   return value;
 }
 
+function getBusinessFieldValue(value: unknown) {
+  const fieldKey = settings.record.export.certificateFieldKey;
+  if (typeof value !== "object" || value === null || Array.isArray(value) || !fieldKey) {
+    return null;
+  }
+
+  const fieldValue = (value as Record<string, unknown>)[fieldKey];
+  if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
+    return null;
+  }
+
+  return typeof fieldValue === "string" || typeof fieldValue === "number"
+    ? String(fieldValue)
+    : JSON.stringify(fieldValue) ?? null;
+}
+
 function getBusinessSearchSettings() {
   const jsonPath = settings.record.searchJsonPath.trim();
   const numberWidth = settings.record.searchNumberWidth;
@@ -130,6 +146,7 @@ function validateBusinessSearchSelection(
 }
 
 function toRecord(row: RecordRow): ApiRecord {
+  const responseData = parseJson(row.response_data);
   return {
     id: row.id,
     taskRunId: row.task_run_id,
@@ -144,7 +161,8 @@ function toRecord(row: RecordRow): ApiRecord {
     errorType: row.error_type,
     errorMessage: row.error_message,
     requestParams: localizeJson(parseJson(row.request_params)),
-    responseData: localizeJson(parseJson(row.response_data)),
+    responseData: localizeJson(responseData),
+    businessFieldValue: getBusinessFieldValue(responseData),
     costMs: row.cost_ms,
     retryCount: row.retry_count,
     createdAt: row.created_at.toISOString(),

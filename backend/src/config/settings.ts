@@ -63,6 +63,14 @@ function readJsonObject(name: string): Record<string, string> {
   }
 }
 
+function readRequiredJsonObject(name: string, requiredKeys: string[]) {
+  const value = readJsonObject(name);
+  if (requiredKeys.some((key) => !value[key]?.trim())) {
+    throw new Error(`${name} 配置不完整`);
+  }
+  return value;
+}
+
 export const settings = {
   server: {
     port: readNumber("PORT", 3001),
@@ -81,7 +89,7 @@ export const settings = {
   },
   record: {
     jsonFieldLabels: readJsonObject("RECORD_JSON_FIELD_LABELS"),
-    defaultStatus: readText("RECORD_DEFAULT_STATUS"),
+    defaultStatus: readRequiredText("RECORD_DEFAULT_STATUS"),
     searchJsonPath: readText("RECORD_SEARCH_JSON_PATH"),
     searchNumberWidth: readNumber("RECORD_SEARCH_NUMBER_WIDTH", 0),
     searchTypeOptions: readList("RECORD_SEARCH_TYPE_OPTIONS"),
@@ -91,8 +99,8 @@ export const settings = {
       sheetName: readText("RECORD_EXPORT_SHEET_NAME"),
       taskIdLabel: readText("RECORD_EXPORT_TASK_ID_LABEL"),
       createdAtLabel: readText("RECORD_EXPORT_CREATED_AT_LABEL"),
-      certificateFieldKey: readText("RECORD_EXPORT_CERTIFICATE_FIELD_KEY"),
-      certificateLabel: readText("RECORD_EXPORT_CERTIFICATE_LABEL"),
+      certificateFieldKey: readRequiredText("RECORD_EXPORT_CERTIFICATE_FIELD_KEY"),
+      certificateLabel: readRequiredText("RECORD_EXPORT_CERTIFICATE_LABEL"),
       emptyValue: readText("RECORD_EXPORT_EMPTY_VALUE"),
       timeZone: readText("RECORD_EXPORT_TIME_ZONE"),
       directory: path.resolve(readRequiredText("RECORD_EXPORT_DIRECTORY")),
@@ -149,5 +157,32 @@ export const settings = {
     clientId: readText("NOTICE_CLIENT_ID"),
     clientSecret: readText("NOTICE_CLIENT_SECRET"),
     conversationId: readText("NOTICE_CONVERSATION_ID"),
+  },
+  frontend: {
+    record: {
+      exportButtonLabel: readRequiredText("FRONTEND_RECORD_EXPORT_BUTTON_LABEL"),
+      exportPollIntervalMs: readPositiveInteger("FRONTEND_RECORD_EXPORT_POLL_INTERVAL_MS", 2000),
+      exportRetentionNotice: readRequiredText("FRONTEND_RECORD_EXPORT_RETENTION_NOTICE"),
+      exportPageLabels: readRequiredJsonObject("FRONTEND_RECORD_EXPORT_PAGE_LABELS", [
+        "menu", "title", "refresh", "taskId", "fileName", "status", "progress",
+        "totalCount", "createdAt", "completedAt", "expiresAt", "errorMessage",
+        "action", "download", "downloadSuccess", "retentionAlert", "totalTemplate",
+        "statusQueued", "statusRunning", "statusCompleted", "statusFailed", "statusExpired",
+      ]),
+      exportListPollIntervalMs: readPositiveInteger("FRONTEND_RECORD_EXPORT_LIST_POLL_INTERVAL_MS", 3000),
+      exportTaskPageSize: readPositiveInteger("FRONTEND_RECORD_EXPORT_TASK_PAGE_SIZE", 20),
+      responseSectionLabels: readRequiredJsonObject("FRONTEND_RECORD_RESPONSE_SECTION_LABELS", ["summary", "details"]),
+      detailSectionLabels: readRequiredJsonObject("FRONTEND_RECORD_DETAIL_SECTION_LABELS", ["request", "response"]),
+    },
+    taskDetail: {
+      fieldLabels: readJsonObject("FRONTEND_TASK_DETAIL_FIELD_LABELS"),
+    },
+    task: {
+      activePollIntervalMs: readPositiveInteger("FRONTEND_TASK_ACTIVE_POLL_INTERVAL_MS", 3000),
+      historyLimit: readPositiveInteger("FRONTEND_TASK_HISTORY_LIMIT", 20),
+    },
+    pagination: {
+      recordDefaultPageSize: readPositiveInteger("FRONTEND_RECORD_DEFAULT_PAGE_SIZE", 20),
+    },
   },
 } as const;

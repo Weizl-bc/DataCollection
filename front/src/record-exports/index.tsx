@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Button,
@@ -26,22 +26,12 @@ type RecordExportsPageProps = {
   onConnectionChange: (connected: boolean) => void;
 };
 
-const labels = frontendConfig.record.exportPageLabels;
-
 const exportStatusColors: Record<RecordExportTask["status"], string> = {
   QUEUED: "default",
   RUNNING: "processing",
   COMPLETED: "success",
   FAILED: "error",
   EXPIRED: "warning",
-};
-
-const exportStatusLabels: Record<RecordExportTask["status"], string> = {
-  QUEUED: labels.statusQueued,
-  RUNNING: labels.statusRunning,
-  COMPLETED: labels.statusCompleted,
-  FAILED: labels.statusFailed,
-  EXPIRED: labels.statusExpired,
 };
 
 function saveFile(blob: Blob, fileName: string) {
@@ -57,6 +47,14 @@ export default function RecordExportsPage({
   apiRevision,
   onConnectionChange,
 }: RecordExportsPageProps) {
+  const labels = frontendConfig.record.exportPageLabels;
+  const exportStatusLabels: Record<RecordExportTask["status"], string> = {
+    QUEUED: labels.statusQueued,
+    RUNNING: labels.statusRunning,
+    COMPLETED: labels.statusCompleted,
+    FAILED: labels.statusFailed,
+    EXPIRED: labels.statusExpired,
+  };
   const pageSize = frontendConfig.record.exportTaskPageSize;
   const [query, setQuery] = useState({ page: 1, pageSize });
   const [taskPage, setTaskPage] = useState<RecordExportTaskPage>({
@@ -98,27 +96,23 @@ export default function RecordExportsPage({
     };
   }, [apiRevision, loadTasks, refreshRevision]);
 
-  const handleDownload = useCallback(
-    async (task: RecordExportTask) => {
-      setDownloadingId(task.id);
-      try {
-        const file = await downloadRecordExport(task.id);
-        saveFile(file.blob, file.fileName);
-        messageApi.success(labels.downloadSuccess);
-        onConnectionChange(true);
-      } catch (nextError) {
-        messageApi.error(getErrorMessage(nextError));
-        onConnectionChange(false);
-        void loadTasks();
-      } finally {
-        setDownloadingId(null);
-      }
-    },
-    [loadTasks, messageApi, onConnectionChange],
-  );
+  const handleDownload = async (task: RecordExportTask) => {
+    setDownloadingId(task.id);
+    try {
+      const file = await downloadRecordExport(task.id);
+      saveFile(file.blob, file.fileName);
+      messageApi.success(labels.downloadSuccess);
+      onConnectionChange(true);
+    } catch (nextError) {
+      messageApi.error(getErrorMessage(nextError));
+      onConnectionChange(false);
+      void loadTasks();
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
-  const columns: TableColumnsType<RecordExportTask> = useMemo(
-    () => [
+  const columns: TableColumnsType<RecordExportTask> = [
       {
         title: labels.taskId,
         dataIndex: "id",
@@ -206,9 +200,7 @@ export default function RecordExportsPage({
           </Button>
         ),
       },
-    ],
-    [downloadingId, handleDownload],
-  );
+    ];
 
   return (
     <>

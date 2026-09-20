@@ -52,6 +52,8 @@ export function createRecordRouter(
     response.json({
       types: settings.record.searchTypeOptions,
       years: settings.record.searchYearOptions,
+      businessFieldLabel: settings.record.export.certificateLabel,
+      defaultStatus: settings.record.defaultStatus,
     });
   });
 

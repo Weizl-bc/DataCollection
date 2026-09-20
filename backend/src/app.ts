@@ -44,6 +44,10 @@ app.get("/api/health", (_request, response) => {
   });
 });
 
+app.get("/api/config", (_request, response) => {
+  response.json(settings.frontend);
+});
+
 app.use("/api/tasks", createTaskRouter(taskManager));
 app.use(
   "/api/api_call_record",

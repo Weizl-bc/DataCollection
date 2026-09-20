@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Flex, Input, Layout, Menu, message } from "antd";
-import { frontendConfig } from "../config";
+import { Alert, Badge, Button, Flex, Input, Layout, Menu, Spin, message } from "antd";
+import { frontendConfig, loadFrontendConfig } from "../config";
 import DataRecordsPage from "../data-records";
 import RecordExportsPage from "../record-exports";
 import { getErrorMessage } from "../shared/formatters";
@@ -20,9 +20,20 @@ export default function AppShell({ darkMode, onToggleDarkMode }: AppProps) {
   const [apiRevision, setApiRevision] = useState(0);
   const [connected, setConnected] = useState(true);
   const [recordTaskRunId, setRecordTaskRunId] = useState("");
+  const [configReady, setConfigReady] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => { document.title = "数据任务台"; }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void loadFrontendConfig()
+      .then(() => { if (!cancelled) setConfigReady(true); })
+      .catch((error: unknown) => {
+        if (!cancelled) setConfigError(getErrorMessage(error));
+      });
+    return () => { cancelled = true; };
+  }, [apiRevision]);
   const handleConnectionChange = useCallback((nextConnected: boolean) => setConnected(nextConnected), []);
   const handleViewRecords = useCallback((taskRunId: string) => {
     setRecordTaskRunId(taskRunId);
@@ -32,6 +43,8 @@ export default function AppShell({ darkMode, onToggleDarkMode }: AppProps) {
     try {
       const nextUrl = frontendConfig.setApiBaseUrl(value);
       setBackendApiUrl(nextUrl);
+      setConfigReady(false);
+      setConfigError(null);
       setApiRevision((current) => current + 1);
       messageApi.success("后端接口地址已应用");
     } catch (error) {
@@ -52,7 +65,7 @@ export default function AppShell({ darkMode, onToggleDarkMode }: AppProps) {
     </Layout.Header>
     <Layout.Content className="app-content">
       <div className="page-shell">
-        {view === "tasks" ? (
+        {configError ? <Alert type="error" showIcon message={configError} /> : !configReady ? <Flex justify="center"><Spin /></Flex> : view === "tasks" ? (
           <TaskManagementPage apiRevision={apiRevision} darkMode={darkMode} onConnectionChange={handleConnectionChange} onViewRecords={handleViewRecords} />
         ) : view === "records" ? (
           <DataRecordsPage key={recordTaskRunId} apiRevision={apiRevision} darkMode={darkMode} initialTaskRunId={recordTaskRunId} onConnectionChange={handleConnectionChange} />

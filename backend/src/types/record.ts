@@ -13,9 +13,17 @@ export type ApiRecord = {
   errorMessage: string | null;
   requestParams: unknown;
   responseData: unknown;
+  businessFieldValue: string | null;
   costMs: number | null;
   retryCount: number;
   createdAt: string;
+};
+
+export type RecordSearchOptions = {
+  types: string[];
+  years: number[];
+  businessFieldLabel: string;
+  defaultStatus: string;
 };
 
 export type RecordPage = {

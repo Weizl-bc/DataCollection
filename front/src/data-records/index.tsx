@@ -6,7 +6,6 @@ import { formatDate, getErrorMessage, getErrorText, getStatusColor, getStatusTex
 import { createRecordExport, downloadRecordExport, getRecordCodeConfig, getRecordExport, getRecords, getRecordSearchOptions } from "./api";
 import { RecordDetailModal } from "./components/record-detail-modal";
 import type { ApiRecord, RecordCodeConfig, RecordPage, RecordQuery, RecordSearchOptions } from "./types";
-import { parseJsonText } from "./utils";
 
 type RecordFilters = Omit<RecordQuery, "page" | "pageSize">;
 type DataRecordsPageProps = {
@@ -17,7 +16,7 @@ type DataRecordsPageProps = {
 };
 
 const emptyFilters: RecordFilters = {
-  status: frontendConfig.record.defaultStatus,
+  status: "",
   taskRunId: "",
   requestId: "",
   businessFieldValue: "",
@@ -34,15 +33,6 @@ const statusOptions = [
   { label: "调用异常", value: "EXCEPTION" },
 ];
 
-function getCertificateNumber(responseData: unknown) {
-  const parsed = parseJsonText(responseData);
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return "—";
-  const record = parsed as Record<string, unknown>;
-  const value = record[frontendConfig.record.certificateFieldLabel] ?? record[frontendConfig.record.certificateFieldKey];
-  if (value === null || value === undefined || value === "") return "—";
-  return typeof value === "string" || typeof value === "number" ? String(value) : JSON.stringify(value) ?? "—";
-}
-
 function formatCodePrefix(config: RecordCodeConfig | null, typeCode: string | undefined, year: number | undefined) {
   if (!config || !typeCode || year === undefined) return "—";
   return config.codeTemplate.replaceAll("{prefix}", config.codePrefix).replaceAll("{type}", typeCode).replaceAll("{year}", String(year)).replaceAll("{number}", "");
@@ -52,7 +42,8 @@ export default function DataRecordsPage({ apiRevision, darkMode, initialTaskRunI
   const pageSize = frontendConfig.pagination.recordDefaultPageSize;
   const initialFilters = { ...emptyFilters, taskRunId: initialTaskRunId };
   const [config, setConfig] = useState<RecordCodeConfig | null>(null);
-  const [options, setOptions] = useState<RecordSearchOptions>({ types: [], years: [] });
+  const [options, setOptions] = useState<RecordSearchOptions>({ types: [], years: [], businessFieldLabel: "", defaultStatus: "" });
+  const [recordConfigReady, setRecordConfigReady] = useState(false);
   const [filters, setFilters] = useState<RecordFilters>(initialFilters);
   const [query, setQuery] = useState<RecordQuery>({ ...initialFilters, page: 1, pageSize });
   const [recordPage, setRecordPage] = useState<RecordPage>({ items: [], total: 0, page: 1, pageSize });
@@ -71,15 +62,22 @@ export default function DataRecordsPage({ apiRevision, darkMode, initialTaskRunI
       setOptions(nextOptions);
       setFilters((current) => ({
         ...current,
+        status: current.status || nextOptions.defaultStatus,
         businessType: current.businessType || (nextOptions.types.includes(nextConfig.typeCode) ? nextConfig.typeCode : nextOptions.types[0] ?? ""),
         businessYear: current.businessYear ?? (nextOptions.years.includes(nextConfig.year) ? nextConfig.year : nextOptions.years[0]),
       }));
+      setQuery((current) => ({
+        ...current,
+        status: current.status || nextOptions.defaultStatus,
+      }));
+      setRecordConfigReady(true);
       onConnectionChange(true);
     }).catch(() => onConnectionChange(false));
     return () => { cancelled = true; };
   }, [apiRevision, onConnectionChange]);
 
   useEffect(() => {
+    if (!recordConfigReady) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       setLoading(true);
@@ -91,7 +89,7 @@ export default function DataRecordsPage({ apiRevision, darkMode, initialTaskRunI
       }).finally(() => { if (!cancelled) setLoading(false); });
     }, 0);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [apiRevision, onConnectionChange, query]);
+  }, [apiRevision, onConnectionChange, query, recordConfigReady]);
 
   const selectedType = filters.businessType || (config && options.types.includes(config.typeCode) ? config.typeCode : options.types[0]);
   const selectedYear = filters.businessYear ?? (config && options.years.includes(config.year) ? config.year : options.years[0]);
@@ -139,12 +137,12 @@ export default function DataRecordsPage({ apiRevision, darkMode, initialTaskRunI
 
   const columns: TableColumnsType<ApiRecord> = useMemo(() => [
     { title: "任务编号", dataIndex: "taskRunId", key: "taskRunId", width: 280, ellipsis: true },
-    { title: frontendConfig.record.certificateFieldLabel, key: "certificate", width: 180, ellipsis: true, render: (_: unknown, record) => getCertificateNumber(record.responseData) },
+    { title: options.businessFieldLabel, dataIndex: "businessFieldValue", key: "businessFieldValue", width: 180, ellipsis: true, render: (value: string | null) => value || "—" },
     { title: "数据是否有效", dataIndex: "callStatus", key: "callStatus", width: 110, render: (value: string) => <Tag color={getStatusColor(value)}>{getStatusText(value)}</Tag> },
     { title: "异常类型", dataIndex: "errorType", key: "errorType", width: 120, render: getErrorText },
     { title: "记录时间", dataIndex: "createdAt", key: "createdAt", width: 180, render: formatDate },
     { title: "操作", key: "action", fixed: "right", width: 90, render: (_: unknown, record) => <Button type="link" onClick={() => setSelectedRecord(record)}>详情</Button> },
-  ], []);
+  ], [options.businessFieldLabel]);
 
   return <>
     {contextHolder}
