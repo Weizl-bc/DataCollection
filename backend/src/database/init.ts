@@ -121,10 +121,34 @@ async function extendRecordTable() {
   }
 }
 
+async function createRecordExportTaskTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS record_export_task (
+      id CHAR(36) NOT NULL,
+      status VARCHAR(20) NOT NULL,
+      query_json LONGTEXT NOT NULL,
+      file_name VARCHAR(255) NOT NULL,
+      file_path VARCHAR(1000) NULL,
+      total_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+      processed_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+      error_message TEXT NULL,
+      started_at DATETIME(3) NULL,
+      completed_at DATETIME(3) NULL,
+      expires_at DATETIME(3) NULL,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (id),
+      KEY idx_record_export_status_created_at (status, created_at),
+      KEY idx_record_export_status_expires_at (status, expires_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+}
+
 export async function initializeDatabase() {
   await pool.query("SELECT 1");
   await createTaskTable();
   await createTaskExecutionLockTable();
   await createRecordTable();
   await extendRecordTable();
+  await createRecordExportTaskTable();
 }

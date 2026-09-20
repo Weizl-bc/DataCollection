@@ -46,9 +46,9 @@ macOS / Linux：
 启动后：
 
 - 前端：http://localhost:5173
-- 后端健康检查：http://localhost:3001/api/health
-- 任务接口：http://localhost:3001/api/tasks
-- 记录接口：http://localhost:3001/api/api_call_record
+- 后端健康检查：http://localhost:3002/api/health
+- 任务接口：http://localhost:3002/api/tasks
+- 记录接口：http://localhost:3002/api/api_call_record
 
 `concurrently` 会在同一个控制台中并行显示前端和后端日志。Windows 脚本不会使用 `start` 命令，因此不会额外打开窗口。
 
@@ -58,7 +58,18 @@ macOS / Linux：
 npm run build
 ```
 
-后端默认监听 `3001` 端口，可通过 `backend/.env` 覆盖，配置示例见 `backend/.env.example`。
+本地开发后端默认监听 `3002` 端口。Docker 镜像固定监听 `3001` 端口；配置示例见 `backend/.env.example`。
+
+## 使用 Docker 部署后端
+
+在项目根目录执行：
+
+```bash
+docker build -t ag-data-collection-backend ./backend
+docker run --name ag-data-collection-backend -p 3001:3001 ag-data-collection-backend
+```
+
+Docker 构建时会把本地的 `backend/.env` 复制到镜像中的 `/app/.env`，因此构建前请确认该文件已经填写完整。`.env` 包含数据库密码和接口凭据，生成的镜像也会包含这些敏感配置，请妥善保存和分发镜像。
 
 `backend/.env` 用于保存数据库、接口凭据和任务参数，已被 `.gitignore` 忽略。首次使用时复制 `backend/.env.example` 并填写本地配置。
 

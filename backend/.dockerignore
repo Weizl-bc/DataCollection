@@ -1,0 +1,6 @@
+node_modules
+dist
+npm-debug.log*
+*.log
+
+# Do not add .env here: backend/.env is intentionally copied into the image.

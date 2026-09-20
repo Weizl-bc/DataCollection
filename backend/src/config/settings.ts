@@ -7,6 +7,12 @@ function readText(name: string, fallback = "") {
   return process.env[name] ?? fallback;
 }
 
+function readRequiredText(name: string) {
+  const value = readText(name).trim();
+  if (!value) throw new Error(`${name} 未配置`);
+  return value;
+}
+
 function readEnv(name: string) {
   return process.env[name];
 }
@@ -14,6 +20,14 @@ function readEnv(name: string) {
 function readNumber(name: string, fallback: number) {
   const value = Number(process.env[name]);
   return Number.isFinite(value) ? value : fallback;
+}
+
+function readPositiveInteger(name: string, fallback: number) {
+  const value = readNumber(name, fallback);
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`${name} 必须是正整数`);
+  }
+  return value;
 }
 
 function readList(name: string) {
@@ -67,10 +81,33 @@ export const settings = {
   },
   record: {
     jsonFieldLabels: readJsonObject("RECORD_JSON_FIELD_LABELS"),
+    defaultStatus: readText("RECORD_DEFAULT_STATUS"),
     searchJsonPath: readText("RECORD_SEARCH_JSON_PATH"),
     searchNumberWidth: readNumber("RECORD_SEARCH_NUMBER_WIDTH", 0),
     searchTypeOptions: readList("RECORD_SEARCH_TYPE_OPTIONS"),
     searchYearOptions: readNumberList("RECORD_SEARCH_YEAR_OPTIONS"),
+    export: {
+      fileName: readText("RECORD_EXPORT_FILE_NAME"),
+      sheetName: readText("RECORD_EXPORT_SHEET_NAME"),
+      taskIdLabel: readText("RECORD_EXPORT_TASK_ID_LABEL"),
+      createdAtLabel: readText("RECORD_EXPORT_CREATED_AT_LABEL"),
+      certificateFieldKey: readText("RECORD_EXPORT_CERTIFICATE_FIELD_KEY"),
+      certificateLabel: readText("RECORD_EXPORT_CERTIFICATE_LABEL"),
+      emptyValue: readText("RECORD_EXPORT_EMPTY_VALUE"),
+      timeZone: readText("RECORD_EXPORT_TIME_ZONE"),
+      directory: path.resolve(readRequiredText("RECORD_EXPORT_DIRECTORY")),
+      failureMessage: readRequiredText("RECORD_EXPORT_FAILURE_MESSAGE"),
+      retentionMs: readPositiveInteger("RECORD_EXPORT_RETENTION_HOURS", 3) * 60 * 60 * 1000,
+      cleanupIntervalMs:
+        readPositiveInteger("RECORD_EXPORT_CLEANUP_INTERVAL_MINUTES", 10) * 60 * 1000,
+      batchSize: readPositiveInteger("RECORD_EXPORT_BATCH_SIZE", 1000),
+      concurrency: readPositiveInteger("RECORD_EXPORT_CONCURRENCY", 1),
+      taskDefaultPageSize: readPositiveInteger(
+        "RECORD_EXPORT_TASK_DEFAULT_PAGE_SIZE",
+        20,
+      ),
+      taskMaxPageSize: readPositiveInteger("RECORD_EXPORT_TASK_MAX_PAGE_SIZE", 100),
+    },
   },
   task: {
     startNo: readNumber("TASK_START_NO", 1),

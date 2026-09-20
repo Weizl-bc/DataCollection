@@ -38,22 +38,15 @@ export type RecordQuery = {
   businessNumberEnd?: number;
 };
 
-export const recordExportStatuses = [
-  "QUEUED",
-  "RUNNING",
-  "COMPLETED",
-  "FAILED",
-  "EXPIRED",
-] as const;
-
-export type RecordExportStatus = (typeof recordExportStatuses)[number];
+export type RecordSearchOptions = {
+  types: string[];
+  years: number[];
+};
 
 export type RecordExportTask = {
   id: string;
-  status: RecordExportStatus;
-  query: RecordQuery;
+  status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "EXPIRED";
   fileName: string;
-  filePath: string | null;
   totalCount: number;
   processedCount: number;
   errorMessage: string | null;
@@ -62,9 +55,20 @@ export type RecordExportTask = {
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
-};
-
-export type RecordExportTaskView = Omit<RecordExportTask, "query" | "filePath"> & {
   progressPercent: number;
   downloadReady: boolean;
+};
+
+export type RecordExportTaskPage = {
+  items: RecordExportTask[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type RecordCodeConfig = {
+  year: number;
+  typeCode: string;
+  codePrefix: string;
+  codeTemplate: string;
 };

@@ -264,4 +264,31 @@ export class RecordRepository {
       pageSize,
     };
   }
+
+  async getExportSummary(query: RecordQuery) {
+    const filters = buildFilters(query);
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total, COALESCE(MAX(id), 0) AS maxId FROM api_call_record WHERE ${filters.where}`,
+      filters.values,
+    );
+    return {
+      totalCount: Number(rows[0]?.total ?? 0),
+      maxId: Number(rows[0]?.maxId ?? 0),
+    };
+  }
+
+  async listExportBatch(
+    query: RecordQuery,
+    afterId: number,
+    maxId: number,
+    limit: number,
+  ) {
+    const filters = buildFilters(query);
+    const safeLimit = Math.max(1, Math.floor(limit));
+    const [rows] = await pool.query<RecordRow[]>(
+      `SELECT id, task_run_id, sequence_no, api_name, request_id, http_method, http_status, biz_code, biz_msg, call_status, error_type, error_message, request_params, response_data, cost_ms, retry_count, created_at FROM api_call_record WHERE ${filters.where} AND id > ? AND id <= ? ORDER BY id ASC LIMIT ${safeLimit}`,
+      [...filters.values, afterId, maxId],
+    );
+    return rows.map(toRecord);
+  }
 }

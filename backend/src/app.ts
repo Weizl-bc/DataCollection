@@ -5,6 +5,8 @@ import { HttpError } from "./errors";
 import { createRecordRouter } from "./routes/record-routes";
 import { createTaskRouter } from "./routes/task-routes";
 import { RecordRepository } from "./repositories/record-repository";
+import { RecordExportTaskRepository } from "./repositories/record-export-task-repository";
+import { RecordExportService } from "./services/record-export-service";
 import { TaskRepository } from "./repositories/task-repository";
 import { NoticeService } from "./services/notice-service";
 import { TaskManager } from "./services/task-manager";
@@ -12,6 +14,10 @@ import { TaskManager } from "./services/task-manager";
 const app = express();
 const taskRepository = new TaskRepository();
 const recordRepository = new RecordRepository();
+const recordExportService = new RecordExportService(
+  recordRepository,
+  new RecordExportTaskRepository(),
+);
 const taskManager = new TaskManager(
   taskRepository,
   recordRepository,
@@ -21,6 +27,7 @@ const taskManager = new TaskManager(
 app.use(
   cors({
     origin: settings.server.origins,
+    exposedHeaders: ["Content-Disposition"],
   }),
 );
 app.use(express.json({ limit: "1mb" }));
@@ -38,7 +45,10 @@ app.get("/api/health", (_request, response) => {
 });
 
 app.use("/api/tasks", createTaskRouter(taskManager));
-app.use("/api/api_call_record", createRecordRouter(recordRepository));
+app.use(
+  "/api/api_call_record",
+  createRecordRouter(recordRepository, recordExportService),
+);
 
 app.use((_request, response) => {
   response.status(404).json({ message: "资源不存在" });
@@ -53,5 +63,5 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
 
 app.use(errorHandler);
 
-export { taskManager };
+export { recordExportService, taskManager };
 export default app;
