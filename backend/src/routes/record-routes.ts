@@ -9,17 +9,26 @@ function readText(value: unknown) {
 }
 
 function readNumber(value: unknown, fallback: number) {
-  const parsed = Number(readText(value));
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function readOptionalNumber(value: unknown) {
-  const text = readText(value);
-  if (!text) {
+  if (value === undefined || value === null || value === "") {
     return undefined;
   }
 
-  const parsed = Number(text);
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
   if (!Number.isFinite(parsed)) {
     throw new HttpError(400, "查询参数不合法");
   }
